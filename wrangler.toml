@@ -1,0 +1,13 @@
+name = "stf-diplomacia"
+main = "src/index.ts"
+compatibility_date = "2026-10-24"
+
+# Configure o database_id real antes de implantar.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "stf_diplomacia"
+# database_id = "SUBSTITUIR_PELO_ID_REAL"
+
+# [[r2_buckets]]
+# binding = "DOCUMENTS"
+# bucket_name = "stf-diplomacia-documentos"

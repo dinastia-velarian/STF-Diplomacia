@@ -3,7 +3,7 @@ import { Hono } from "hono";
 type Bindings = { DB?: D1Database; DOCUMENTS?: R2Bucket };
 const app = new Hono<{ Bindings: Bindings }>();
 
-const page = \`<!doctype html>
+const page = `<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -61,7 +61,7 @@ footer{background:#10231f;color:#c1cfc4;padding:42px 0}.footinner{display:flex;j
 <section class="institution" id="institucional"><div class="container instgrid"><div class="instart" aria-hidden="true"><div class="instseal"><b>STF</b><small>DIPLOMACIA</small></div></div><div class="instcopy"><div class="eyebrow">Nossa instituição</div><h2>Uma Justiça construída sobre princípios.</h2><p>O Supremo Tribunal Federal de roleplay integra a experiência institucional do Brasil no jogo Diplomacia. Este portal foi concebido para reunir informações, fortalecer a transparência e apoiar a organização dos procedimentos judiciais.</p><p>As atribuições judiciais e a administração técnica da plataforma serão mantidas separadas, respeitando as competências de cada função.</p></div></div></section>
 <section class="notice" id="transparencia"><div class="container noticeinner"><span class="noticemark" aria-hidden="true">✳</span><div><strong>Transparência desde o primeiro dia.</strong><p>O portal está em implantação. Cadastro, peticionamento e consultas processuais ainda não foram ativados. Nenhum dado processual fictício é apresentado como registro oficial.</p></div></div></section>
 </main><footer><div class="container footinner"><span class="footbrand">STF <span style="color:#c8a675">·</span> Diplomacia</span><span class="footnote">Projeto independente de roleplay do jogo Diplomacia. Sem vínculo com o Supremo Tribunal Federal ou qualquer órgão oficial da República Federativa do Brasil.</span></div></footer>
-</body></html>\`;
+</body></html>`;
 
 app.get("/", (c) => c.html(page));
 app.get("/api/health", (c) => c.json({ ok: true, service: "STF Diplomacia" }));

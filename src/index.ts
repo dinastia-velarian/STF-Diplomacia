@@ -1,7 +1,9 @@
 import { Hono } from "hono";
+import { auth } from "./auth";
 
 type Bindings = { DB?: D1Database; DOCUMENTS?: R2Bucket };
 const app = new Hono<{ Bindings: Bindings }>();
+app.route("/api/auth", auth);
 
 const page = `<!doctype html>
 <html lang="pt-BR">
@@ -113,5 +115,8 @@ app.get("/api/public/decisoes", async (c) => {
     return c.json({ available: false, decisions: [], message: "Decisões temporariamente indisponíveis." }, 503);
   }
 });
+
+
+app.get("/conta", c => c.html(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minha conta · STF Diplomacia</title><style>body{background:#f6f4ef;color:#162e2a;font:16px system-ui;margin:0}header{background:#162e2a;color:white;padding:24px max(20px,calc((100% - 920px)/2))}a{color:inherit}main{max-width:480px;margin:55px auto;padding:0 20px}h1{font:38px Georgia,serif}form{background:white;border:1px solid #dcded7;padding:28px;display:grid;gap:14px}label{display:grid;gap:6px}input{font:inherit;padding:12px;border:1px solid #bccbc4}button{background:#162e2a;color:white;border:0;padding:14px;cursor:pointer;font:inherit}.muted{color:#60746b}#notice{min-height:24px}footer{font-size:12px;margin-top:45px;color:#60746b}</style></head><body><header><a href="/">← STF DIPLOMACIA</a></header><main><h1>Acesso ao Tribunal</h1><p class="muted">Utilize seu nome de jogador do Diplomacia. O cadastro não concede poderes judiciais.</p><form id="account"><label>Nome no Diplomacia<input id="username" required minlength="3" maxlength="40" autocomplete="username"></label><label>Senha<input id="password" type="password" required minlength="12" maxlength="128" autocomplete="current-password"></label><button id="login" type="submit">Entrar</button><button id="register" type="button">Criar conta</button><p id="notice" role="status" aria-live="polite"></p></form><footer>Plataforma independente de roleplay do jogo Diplomacia. Sem vínculo com o STF real.</footer></main><script>const form=document.querySelector('#account'),notice=document.querySelector('#notice');async function submit(mode){notice.textContent='Aguarde...';const username=document.querySelector('#username').value,password=document.querySelector('#password').value;try{const response=await fetch('/api/auth/'+mode,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,password})});const data=await response.json();notice.textContent=data.error||data.message||(data.ok?'Autenticado com sucesso.':'Não foi possível concluir.');if(data.ok&&mode==='login'){document.querySelector('#password').value='';form.querySelector('#login').textContent='Conectado'}}catch{notice.textContent='Serviço indisponível.'}}form.addEventListener('submit',e=>{e.preventDefault();submit('login')});document.querySelector('#register').addEventListener('click',()=>submit('register'))</script></body></html>`));
 
 export default app;

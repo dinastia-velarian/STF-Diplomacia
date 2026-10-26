@@ -80,3 +80,34 @@ docket.post("/admissibilidade", async c => {
     return c.json({ error: "Análise indisponível." }, 503);
   }
 });
+
+docket.post("/julgar", async c => {
+  c.header("Cache-Control", "no-store");
+  if (!c.env.DB) return c.json({ error: "Banco indisponível." }, 503);
+  try {
+    const actor = await access(c);
+    if (!actor || !actor.roles.some(role => ["minister", "president"].includes(role))) return c.json({ error: "Acesso restrito aos magistrados." }, 403);
+    const origin = c.req.header("origin");
+    if (!origin || origin !== new URL(c.req.url).origin) return c.json({ error: "Origem não autorizada." }, 403);
+    const body = await c.req.json().catch(() => null);
+    const number = typeof body?.case_number === "string" ? body.case_number : "";
+    const content = typeof body?.content === "string" ? body.content.trim() : "";
+    const basis = typeof body?.constitutional_basis === "string" ? body.constitutional_basis.trim() : "";
+    if (!/^STF-[0-9]{4}-[A-F0-9]{8}$/.test(number) || content.length < 80 || content.length > 20000 || basis.length > 5000) return c.json({ error: "Informe processo e decisão fundamentada de 80 a 20000 caracteres." }, 400);
+    const record = await c.env.DB.prepare("SELECT id FROM cases WHERE case_number=? AND assigned_judge=? AND status IN ('instruction','hearing')").bind(number, actor.user.id).first<{id:string}>();
+    if (!record) return c.json({ error: "Processo não disponível para julgamento por este relator." }, 409);
+    const decisionId = crypto.randomUUID();
+    const eventId = crypto.randomUUID();
+    const now = new Date().toISOString();
+    const operations = await c.env.DB.batch([
+      c.env.DB.prepare("UPDATE cases SET status='decided' WHERE id=? AND assigned_judge=? AND status IN ('instruction','hearing')").bind(record.id, actor.user.id),
+      c.env.DB.prepare("INSERT INTO decisions (id,case_id,author_id,content,constitutional_basis,status,published_at) SELECT ?,?,?,?,?,?,? WHERE changes()=1").bind(decisionId, record.id, actor.user.id, content, basis || null, "published", now),
+      c.env.DB.prepare("INSERT INTO case_events (id,case_id,actor_id,event_type,details) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM decisions WHERE id=?)").bind(eventId, record.id, actor.user.id, "decided", "Decisão publicada pelo relator.", decisionId),
+      c.env.DB.prepare("INSERT INTO audit_logs (id,actor_id,action,resource_type,resource_id,metadata) SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM decisions WHERE id=?)").bind(crypto.randomUUID(), actor.user.id, "decision.published", "decision", decisionId, JSON.stringify({ case_number: number }), decisionId)
+    ]);
+    if (!operations[0].meta.changes) return c.json({ error: "O processo já foi julgado ou mudou de fase." }, 409);
+    return c.json({ ok: true, decision_id: decisionId, message: "Decisão publicada." });
+  } catch {
+    return c.json({ error: "Julgamento indisponível." }, 503);
+  }
+});

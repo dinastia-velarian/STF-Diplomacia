@@ -8,6 +8,17 @@ import { ministerPanel } from "./minister-panel";
 
 type Bindings = { DB?: D1Database; DOCUMENTS?: R2Bucket };
 const app = new Hono<{ Bindings: Bindings }>();
+app.use("/api/*", async (c, next) => {
+  if (["POST", "PUT", "PATCH", "DELETE"].includes(c.req.method)) {
+    const origin = c.req.header("origin");
+    if (!origin || origin !== new URL(c.req.url).origin) return c.json({ error: "Origem não autorizada." }, 403);
+    const contentType = c.req.header("content-type") || "";
+    if (c.req.method !== "DELETE" && !contentType.toLowerCase().startsWith("application/json")) return c.json({ error: "Envie dados JSON." }, 415);
+    const length = Number(c.req.header("content-length") || 0);
+    if (length > 65536) return c.json({ error: "Requisição muito grande." }, 413);
+  }
+  await next();
+});
 app.route("/api/auth", auth);
 app.route("/api/judicial", judicial);
 app.route("/api/court", court);

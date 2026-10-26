@@ -30,7 +30,7 @@ button{background:#17382f;color:#fff;border:0;padding:13px 20px;cursor:pointer;f
 <button id="refresh" type="button">Atualizar fila</button>
 <div id="results" role="status" aria-live="polite">Carregando...</div><section id="distribution" hidden><h2>Distribuir relatoria</h2><label for="judge">Ministro relator</label> <select id="judge"></select> <button id="assign" type="button">Distribuir processo selecionado</button><p id="assignment-status" role="status"></p></section>
 </div>
-<p class="muted">A distribuição de relatoria e os julgamentos serão disponibilizados após os testes do banco e das permissões.</p>
+<section class="panel"><h2>Análise de admissibilidade</h2><p class="muted">Somente o ministro relator pode analisar o processo selecionado.</p><label for="reason">Fundamentação</label><p><textarea id="reason" rows="6" maxlength="5000" style="width:100%;box-sizing:border-box" placeholder="Fundamente a decisão (mínimo de 30 caracteres)"></textarea></p><button id="admit" type="button">Admitir processo</button> <button id="reject" type="button">Rejeitar processo</button><p id="admission-status" role="status"></p></section>
 </main>
 <script>
 let selectedCase = "";
@@ -59,6 +59,9 @@ async function load() {
 }
 async function loadJudges(){try{const r=await fetch("/api/court/relatores");if(!r.ok)return;const data=await r.json();const select=document.querySelector("#judge");for(const judge of data.judges){const option=document.createElement("option");option.value=judge.id;option.textContent=judge.game_username;select.append(option)}document.querySelector("#distribution").hidden=!data.judges.length}catch{}}
 document.querySelector("#assign").addEventListener("click",async()=>{const status=document.querySelector("#assignment-status");if(!selectedCase){status.textContent="Selecione um processo.";return}try{const r=await fetch("/api/court/distribuir",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case_number:selectedCase,judge_id:document.querySelector("#judge").value})});const data=await r.json();status.textContent=data.message||data.error||"Operação indisponível.";if(r.ok)load()}catch{status.textContent="Falha na distribuição."}});
+async function decide(action){const status=document.querySelector("#admission-status");const reason=document.querySelector("#reason").value.trim();if(!selectedCase||reason.length<30){status.textContent="Selecione um processo e informe pelo menos 30 caracteres de fundamentação.";return}if(!confirm("Confirmar decisão de admissibilidade?"))return;try{const r=await fetch("/api/court/admissibilidade",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case_number:selectedCase,action,reason})});const data=await r.json();status.textContent=data.message||data.error||"Operação indisponível.";if(r.ok)load()}catch{status.textContent="Não foi possível registrar a análise."}}
+document.querySelector("#admit").addEventListener("click",()=>decide("admit"));
+document.querySelector("#reject").addEventListener("click",()=>decide("reject"));
 document.querySelector("#refresh").addEventListener("click", load);
 loadJudges();
 load();

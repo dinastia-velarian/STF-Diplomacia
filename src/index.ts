@@ -5,6 +5,8 @@ import { portal } from "./portal";
 import { court } from "./court";
 import { docket } from "./docket";
 import { ministerPanel } from "./minister-panel";
+import { admin } from "./admin";
+import { adminPanel } from "./admin-panel";
 
 type Bindings = { DB?: D1Database; DOCUMENTS?: R2Bucket };
 const app = new Hono<{ Bindings: Bindings }>();
@@ -23,8 +25,10 @@ app.route("/api/auth", auth);
 app.route("/api/judicial", judicial);
 app.route("/api/court", court);
 app.route("/api/court", docket);
+app.route("/api/admin", admin);
 app.route("/", portal);
 app.route("/", ministerPanel);
+app.route("/", adminPanel);
 
 const page = `<!doctype html>
 <html lang="pt-BR">

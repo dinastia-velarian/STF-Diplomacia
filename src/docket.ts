@@ -47,3 +47,32 @@ docket.post("/distribuir", async c => {
     return c.json({ error: "Distribuição indisponível." }, 503);
   }
 });
+
+docket.post("/admissibilidade", async c => {
+  c.header("Cache-Control", "no-store");
+  if (!c.env.DB) return c.json({ error: "Banco indisponível." }, 503);
+  try {
+    const actor = await access(c);
+    if (!actor || !actor.roles.some(role => ["minister", "president"].includes(role))) return c.json({ error: "Acesso restrito aos magistrados." }, 403);
+    const origin = c.req.header("origin");
+    if (!origin || origin !== new URL(c.req.url).origin) return c.json({ error: "Origem não autorizada." }, 403);
+    const body = await c.req.json().catch(() => null);
+    const number = typeof body?.case_number === "string" ? body.case_number : "";
+    const action = body?.action;
+    const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+    if (!/^STF-[0-9]{4}-[A-F0-9]{8}$/.test(number) || !["admit", "reject"].includes(action) || reason.length < 30 || reason.length > 5000) return c.json({ error: "Informe processo, decisão e fundamentação de 30 a 5000 caracteres." }, 400);
+    const record = await c.env.DB.prepare("SELECT id FROM cases WHERE case_number=? AND assigned_judge=? AND status IN ('submitted','triage')").bind(number, actor.user.id).first<{id:string}>();
+    if (!record) return c.json({ error: "Processo não encontrado na relatoria ou já analisado." }, 409);
+    const status = action === "admit" ? "instruction" : "rejected";
+    const event = action === "admit" ? "admitted" : "rejected";
+    const updated = await c.env.DB.prepare("UPDATE cases SET status=? WHERE id=? AND assigned_judge=? AND status IN ('submitted','triage')").bind(status, record.id, actor.user.id).run();
+    if (!updated.meta.changes) return c.json({ error: "O processo já foi analisado." }, 409);
+    await c.env.DB.batch([
+      c.env.DB.prepare("INSERT INTO case_events (id,case_id,actor_id,event_type,details) VALUES (?,?,?,?,?)").bind(crypto.randomUUID(), record.id, actor.user.id, event, reason),
+      c.env.DB.prepare("INSERT INTO audit_logs (id,actor_id,action,resource_type,resource_id,metadata) VALUES (?,?,?,?,?,?)").bind(crypto.randomUUID(), actor.user.id, "case.admissibility", "case", record.id, JSON.stringify({ outcome: event }))
+    ]);
+    return c.json({ ok: true, status, message: action === "admit" ? "Processo admitido para instrução." : "Processo rejeitado na admissibilidade." });
+  } catch {
+    return c.json({ error: "Análise indisponível." }, 503);
+  }
+});

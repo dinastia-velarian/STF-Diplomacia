@@ -65,4 +65,35 @@ footer{background:#10231f;color:#c1cfc4;padding:42px 0}.footinner{display:flex;j
 
 app.get("/", (c) => c.html(page));
 app.get("/api/health", (c) => c.json({ ok: true, service: "STF Diplomacia" }));
+
+type PublicCase = { case_number: string; title: string; case_type: string; status: string; created_at: string };
+app.get("/api/public/processos", async (c) => {
+  c.header("Cache-Control", "no-store");
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length > 80) return c.json({ error: "Consulta muito longa." }, 400);
+  if (!c.env.DB) return c.json({ available: false, processes: [], message: "Consulta processual em preparação." });
+  try {
+    const pattern = "%" + q.replace(/[\\%_]/g, "\\export default app;") + "%";
+    const statement = q
+      ? c.env.DB.prepare("SELECT case_number, title, case_type, status, created_at FROM cases WHERE visibility = 'public' AND (case_number LIKE ? ESCAPE '\\' OR title LIKE ? ESCAPE '\\') ORDER BY created_at DESC LIMIT 30").bind(pattern, pattern)
+      : c.env.DB.prepare("SELECT case_number, title, case_type, status, created_at FROM cases WHERE visibility = 'public' ORDER BY created_at DESC LIMIT 30");
+    const result = await statement.all<PublicCase>();
+    return c.json({ available: true, processes: result.results ?? [] });
+  } catch {
+    return c.json({ available: false, processes: [], message: "Consulta temporariamente indisponível." }, 503);
+  }
+});
+app.get("/api/public/legislacao", async (c) => {
+  c.header("Cache-Control", "no-store");
+  if (!c.env.DB) return c.json({ available: false, norms: [], message: "Biblioteca jurídica em preparação." });
+  try {
+    const result = await c.env.DB.prepare("SELECT id, norm_type, title, effective_from FROM legal_norms ORDER BY created_at DESC LIMIT 50").all();
+    return c.json({ available: true, norms: result.results ?? [] });
+  } catch {
+    return c.json({ available: false, norms: [], message: "Biblioteca temporariamente indisponível." }, 503);
+  }
+});
+const escapeHtml = (value: string) => value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char] ?? char);
+app.get("/processos", (c) => c.html(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Consulta processual · STF Diplomacia</title><style>body{margin:0;background:#f6f4ef;color:#172e28;font:16px system-ui,sans-serif}header{background:#142d27;color:white;padding:25px max(20px,calc((100% - 980px)/2))}a{color:inherit}main{max-width:980px;margin:65px auto;padding:0 20px}h1{font:40px Georgia,serif}form{display:flex;gap:10px}input{flex:1;padding:15px;border:1px solid #c8d1c9;font:inherit;min-width:0}button{background:#17382f;color:white;border:0;padding:15px 25px;cursor:pointer}.item{padding:20px;background:white;border:1px solid #d9dfd9;margin-top:12px}.muted{color:#64756b}footer{margin-top:60px;color:#64756b;font-size:12px}</style></head><body><header><a href="/">← STF DIPLOMACIA</a></header><main><p class="muted">SERVIÇOS JUDICIAIS</p><h1>Consulta processual</h1><p>Pesquise por número ou título de processos públicos. Processos restritos ou sigilosos não são exibidos.</p><form id="search"><input id="q" maxlength="80" aria-label="Número ou título do processo" placeholder="Número ou título do processo"><button>Pesquisar</button></form><div id="results" role="status" aria-live="polite"><p class="muted">Carregando...</p></div><footer>Portal independente de roleplay do jogo Diplomacia, sem vínculo com o STF real.</footer></main><script>const form=document.querySelector('#search'),target=document.querySelector('#results');async function load(){target.textContent='Consultando...';try{const q=document.querySelector('#q').value;const r=await fetch('/api/public/processos?q='+encodeURIComponent(q));const data=await r.json();target.replaceChildren();if(!data.available){target.textContent=data.message||'Consulta indisponível.';return}if(!data.processes.length){target.textContent='Nenhum processo público encontrado.';return}for(const p of data.processes){const div=document.createElement('div');div.className='item';const h=document.createElement('strong');h.textContent=p.case_number+' · '+p.title;const info=document.createElement('p');info.className='muted';info.textContent=p.case_type+' · '+p.status+' · '+p.created_at;div.append(h,info);target.append(div)}}catch{target.textContent='Não foi possível carregar a consulta.'}}form.addEventListener('submit',e=>{e.preventDefault();load()});load()</script></body></html>`));
+
 export default app;

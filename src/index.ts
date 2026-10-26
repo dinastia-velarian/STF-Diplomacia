@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { auth } from "./auth";
+import { judicial } from "./judicial";
 
 type Bindings = { DB?: D1Database; DOCUMENTS?: R2Bucket };
 const app = new Hono<{ Bindings: Bindings }>();
 app.route("/api/auth", auth);
+app.route("/api/judicial", judicial);
 
 const page = `<!doctype html>
 <html lang="pt-BR">

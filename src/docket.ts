@@ -28,6 +28,8 @@ docket.post("/distribuir", async c => {
   try {
     const actor = await access(c);
     if (!actor || !actor.roles.some(role => ["president", "court_clerk"].includes(role))) return c.json({ error: "Somente a Presidência ou a Secretaria pode distribuir processos." }, 403);
+    const origin = c.req.header("origin");
+    if (!origin || origin !== new URL(c.req.url).origin) return c.json({ error: "Origem não autorizada." }, 403);
     const body = await c.req.json().catch(() => null);
     const number = typeof body?.case_number === "string" ? body.case_number : "";
     const judge = typeof body?.judge_id === "string" ? body.judge_id : "";
@@ -36,12 +38,13 @@ docket.post("/distribuir", async c => {
     if (!valid) return c.json({ error: "Relator não autorizado." }, 400);
     const record = await c.env.DB.prepare("SELECT id FROM cases WHERE case_number=? AND status IN ('submitted','triage','instruction') AND assigned_judge IS NULL").bind(number).first<{id:string}>();
     if (!record) return c.json({ error: "Processo indisponível para distribuição." }, 409);
-    const result = await c.env.DB.prepare("UPDATE cases SET assigned_judge=? WHERE id=? AND assigned_judge IS NULL").bind(judge, record.id).run();
-    if (!result.meta.changes) return c.json({ error: "Processo já distribuído." }, 409);
-    await c.env.DB.batch([
-      c.env.DB.prepare("INSERT INTO case_events (id,case_id,actor_id,event_type,details) VALUES (?,?,?,?,?)").bind(crypto.randomUUID(), record.id, actor.user.id, "assigned", "Relatoria distribuída."),
-      c.env.DB.prepare("INSERT INTO audit_logs (id,actor_id,action,resource_type,resource_id) VALUES (?,?,?,?,?)").bind(crypto.randomUUID(), actor.user.id, "case.assigned", "case", record.id)
+    const eventId = crypto.randomUUID();
+    const operations = await c.env.DB.batch([
+      c.env.DB.prepare("UPDATE cases SET assigned_judge=? WHERE id=? AND assigned_judge IS NULL AND status IN ('submitted','triage','instruction')").bind(judge, record.id),
+      c.env.DB.prepare("INSERT INTO case_events (id,case_id,actor_id,event_type,details) SELECT ?,?,?,?,? WHERE changes()=1").bind(eventId, record.id, actor.user.id, "assigned", "Relatoria distribuída."),
+      c.env.DB.prepare("INSERT INTO audit_logs (id,actor_id,action,resource_type,resource_id) SELECT ?,?,?,?,? WHERE EXISTS (SELECT 1 FROM case_events WHERE id=?)").bind(crypto.randomUUID(), actor.user.id, "case.assigned", "case", record.id, eventId)
     ]);
+    if (!operations[0].meta.changes) return c.json({ error: "Processo já distribuído." }, 409);
     return c.json({ ok: true, message: "Relatoria distribuída." });
   } catch {
     return c.json({ error: "Distribuição indisponível." }, 503);
@@ -65,12 +68,13 @@ docket.post("/admissibilidade", async c => {
     if (!record) return c.json({ error: "Processo não encontrado na relatoria ou já analisado." }, 409);
     const status = action === "admit" ? "instruction" : "rejected";
     const event = action === "admit" ? "admitted" : "rejected";
-    const updated = await c.env.DB.prepare("UPDATE cases SET status=? WHERE id=? AND assigned_judge=? AND status IN ('submitted','triage')").bind(status, record.id, actor.user.id).run();
-    if (!updated.meta.changes) return c.json({ error: "O processo já foi analisado." }, 409);
-    await c.env.DB.batch([
-      c.env.DB.prepare("INSERT INTO case_events (id,case_id,actor_id,event_type,details) VALUES (?,?,?,?,?)").bind(crypto.randomUUID(), record.id, actor.user.id, event, reason),
-      c.env.DB.prepare("INSERT INTO audit_logs (id,actor_id,action,resource_type,resource_id,metadata) VALUES (?,?,?,?,?,?)").bind(crypto.randomUUID(), actor.user.id, "case.admissibility", "case", record.id, JSON.stringify({ outcome: event }))
+    const eventId = crypto.randomUUID();
+    const operations = await c.env.DB.batch([
+      c.env.DB.prepare("UPDATE cases SET status=? WHERE id=? AND assigned_judge=? AND status IN ('submitted','triage')").bind(status, record.id, actor.user.id),
+      c.env.DB.prepare("INSERT INTO case_events (id,case_id,actor_id,event_type,details) SELECT ?,?,?,?,? WHERE changes()=1").bind(eventId, record.id, actor.user.id, event, reason),
+      c.env.DB.prepare("INSERT INTO audit_logs (id,actor_id,action,resource_type,resource_id,metadata) SELECT ?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM case_events WHERE id=?)").bind(crypto.randomUUID(), actor.user.id, "case.admissibility", "case", record.id, JSON.stringify({ outcome: event }), eventId)
     ]);
+    if (!operations[0].meta.changes) return c.json({ error: "O processo já foi analisado." }, 409);
     return c.json({ ok: true, status, message: action === "admit" ? "Processo admitido para instrução." : "Processo rejeitado na admissibilidade." });
   } catch {
     return c.json({ error: "Análise indisponível." }, 503);

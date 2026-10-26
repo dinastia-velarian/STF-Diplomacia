@@ -28,11 +28,12 @@ button{background:#17382f;color:#fff;border:0;padding:13px 20px;cursor:pointer;f
 <p>Consulta dos processos pendentes de análise pelos membros autorizados do Tribunal.</p>
 <div class="panel">
 <button id="refresh" type="button">Atualizar fila</button>
-<div id="results" role="status" aria-live="polite">Carregando...</div>
+<div id="results" role="status" aria-live="polite">Carregando...</div><section id="distribution" hidden><h2>Distribuir relatoria</h2><label for="judge">Ministro relator</label> <select id="judge"></select> <button id="assign" type="button">Distribuir processo selecionado</button><p id="assignment-status" role="status"></p></section>
 </div>
 <p class="muted">A distribuição de relatoria e os julgamentos serão disponibilizados após os testes do banco e das permissões.</p>
 </main>
 <script>
+let selectedCase = "";
 async function load() {
  const target = document.querySelector("#results");
  target.textContent = "Consultando fila...";
@@ -47,15 +48,19 @@ async function load() {
    article.className = "item";
    const title = document.createElement("strong");
    title.textContent = item.case_number + " · " + item.title;
+   const select = document.createElement("button"); select.type = "button"; select.textContent = "Selecionar para distribuição"; select.addEventListener("click", () => { selectedCase = item.case_number; document.querySelector("#assignment-status").textContent = "Selecionado: " + selectedCase; });
    const details = document.createElement("p");
    details.className = "muted";
    details.textContent = item.case_type + " · " + item.status + " · " + item.created_at;
-   article.append(title, details);
+   article.append(title, details, select);
    target.append(article);
   }
  } catch { target.textContent = "Não foi possível carregar a fila."; }
 }
+async function loadJudges(){try{const r=await fetch("/api/court/relatores");if(!r.ok)return;const data=await r.json();const select=document.querySelector("#judge");for(const judge of data.judges){const option=document.createElement("option");option.value=judge.id;option.textContent=judge.game_username;select.append(option)}document.querySelector("#distribution").hidden=!data.judges.length}catch{}}
+document.querySelector("#assign").addEventListener("click",async()=>{const status=document.querySelector("#assignment-status");if(!selectedCase){status.textContent="Selecione um processo.";return}try{const r=await fetch("/api/court/distribuir",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case_number:selectedCase,judge_id:document.querySelector("#judge").value})});const data=await r.json();status.textContent=data.message||data.error||"Operação indisponível.";if(r.ok)load()}catch{status.textContent="Falha na distribuição."}});
 document.querySelector("#refresh").addEventListener("click", load);
+loadJudges();
 load();
 </script>
 </body>

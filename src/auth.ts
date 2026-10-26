@@ -67,7 +67,7 @@ auth.post("/login", async c => {
     return c.json({ error: "Login indisponível." }, 503);
   }
 });
-async function currentUser(c: any) {
+export async function currentUser(c: any) {
   if (!c.env.DB) return null;
   const token = /(?:^|;\s*)stf_session=([0-9a-f]{64})(?:;|$)/.exec(c.req.header("cookie") || "")?.[1];
   if (!token) return null;

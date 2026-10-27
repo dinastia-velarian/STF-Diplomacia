@@ -47,3 +47,8 @@ adminExtended.post("/configuracoes",async c=>{
  c.env.DB!.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.setting.update","setting",b.key)
  ]);return c.json({ok:true});
 });
+
+adminExtended.get("/magistrados",async c=>{
+ const rows=await c.env.DB!.prepare("SELECT u.id,u.game_username,r.name AS role,ur.granted_at FROM user_roles ur JOIN users u ON u.id=ur.user_id JOIN roles r ON r.id=ur.role_id WHERE ur.revoked_at IS NULL AND r.name IN ('minister','president','court_clerk') ORDER BY r.name,u.game_username LIMIT 300").all();
+ return c.json({magistrates:rows.results});
+});

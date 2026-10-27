@@ -39,7 +39,7 @@ adminExtended.get("/configuracoes",async c=>{
 });
 adminExtended.post("/configuracoes",async c=>{
  const b=await c.req.json().catch(()=>null);
- if(!["site_title","announcement","maintenance_notice","contact_telegram"].includes(b?.key)||typeof b?.value!=="string"||b.value.length>2000)return c.json({error:"Dados inválidos"},400);
+ if(!["site_title","announcement","maintenance_notice","contact_telegram"].includes(b?.key)||typeof b?.value!=="string"||b.value.length>2000|| (b.key==="site_title"&&b.value.trim().length<3))return c.json({error:"Dados inválidos"},400);
  const actor=await currentUser(c);
  await c.env.DB!.batch([
  c.env.DB!.prepare("INSERT INTO site_settings(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP").bind(b.key,b.value),

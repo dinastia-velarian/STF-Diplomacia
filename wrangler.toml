@@ -3,10 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2026-10-24"
 
 # Configure o database_id real antes de implantar.
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "stf_diplomacia"
-# database_id = "SUBSTITUIR_PELO_ID_REAL"
+[[d1_databases]]
+binding = "DB"
+database_name = "stf_diplomacia"
+database_id = "dfa828ae-bc42-4393-a9ae-9e432f5fe555"
 
 # [[r2_buckets]]
 # binding = "DOCUMENTS"

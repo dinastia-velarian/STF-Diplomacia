@@ -33,7 +33,7 @@ auth.post("/register", async c => {
     const username = typeof body.username === "string" ? body.username.trim() : "";
     const password = typeof body.password === "string" ? body.password : "";
     if (!/^[\p{L}\p{N}][\p{L}\p{N} _.-]{2,39}$/u.test(username)) return c.json({ error: "Nome deve ter entre 3 e 40 caracteres." }, 400);
-    if (password.length < 12 || password.length > 128) return c.json({ error: "A senha deve ter entre 12 e 128 caracteres." }, 400);
+    if (password.length < 6 || password.length > 12) return c.json({ error: "A senha deve ter entre 6 e 12 caracteres." }, 400);
     const id = crypto.randomUUID();
     const hash = await passwordHash(password);
     await c.env.DB.prepare("INSERT INTO users (id, game_username, password_hash) VALUES (?, ?, ?)").bind(id, username, hash).run();

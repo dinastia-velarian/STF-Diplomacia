@@ -94,7 +94,7 @@ h1{font-size:clamp(44px,5.5vw,78px);letter-spacing:-.055em}h1 em{color:#a6c6ff}.
 <div class="topbar"><div class="container"><span>REPÚBLICA FEDERATIVA DO BRASIL <b>·</b> UNIVERSO DIPLOMACIA</span><span>PORTAL INSTITUCIONAL <b> / </b> RP</span></div></div>
 <header class="sitehead"><div class="container headinner">
 <a class="identity" href="/" aria-label="Página inicial do STF Diplomacia"><span class="crest"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 5v28M8 13h24M11 13l-6 12h12l-6-12Zm18 0-6 12h12l-6-12ZM14 34h12M10 37h20"/></svg></span><span class="idcopy"><strong>Supremo Tribunal Federal</strong><small>República Federativa do Brasil</small></span></a>
-<nav aria-label="Menu principal"><a href="#institucional">O Tribunal</a><a href="#servicos">Serviços</a><a href="#transparencia">Transparência</a><a href="/conta" class="loginlink">Entrar</a><a href="/cadastro" class="loginlink">Criar conta</a><a class="navcta" href="/processos">Consultar processos <span aria-hidden="true">↗</span></a></nav>
+<nav aria-label="Menu principal"><a href="#institucional">O Tribunal</a><a href="#servicos">Serviços</a><a href="#transparencia">Transparência</a><a href="/administracao" class="loginlink">Administração</a><a href="/conta" class="loginlink">Entrar</a><a href="/cadastro" class="loginlink">Criar conta</a><a class="navcta" href="/processos">Consultar processos <span aria-hidden="true">↗</span></a></nav>
 </div></header>
 <main>
 <section class="hero"><div class="heroart" aria-hidden="true"><div class="pediment"></div><div class="beam"></div><div class="columns"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>

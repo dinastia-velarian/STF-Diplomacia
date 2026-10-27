@@ -63,7 +63,7 @@ adminExtended.get("/processos/:id/movimentacoes",async c=>{
 adminExtended.get("/backup",async c=>{
  const tables=["users","roles","user_roles","cases","case_parties","case_events","decisions","votes","legal_norms","constitutional_reviews","consultations","audit_logs","site_settings"];
  const data:Record<string,unknown>={};
- for(const table of tables){const result=await c.env.DB!.prepare("SELECT * FROM "+table+" LIMIT 5000").all();data[table]=result.results}
+ for(const table of tables){const result=await c.env.DB!.prepare("SELECT * FROM "+table+" LIMIT 5000").all();if((result.results||[]).length===5000)return c.json({error:"Limite de exportação atingido; use backup completo do D1 no Cloudflare"},409);data[table]=result.results}
  c.header("Content-Disposition",'attachment; filename="stf-diplomacia-backup.json"');
  return c.json({exported_at:new Date().toISOString(),data});
 });

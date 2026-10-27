@@ -115,7 +115,7 @@ h1{font-size:clamp(44px,5.5vw,78px);letter-spacing:-.055em}h1 em{color:#a6c6ff}.
 </main><footer><div class="container footinner"><span class="footbrand">STF <span style="color:#c8a675">·</span> Diplomacia</span><span class="footnote">Projeto independente de roleplay do jogo Diplomacia. Sem vínculo com o Supremo Tribunal Federal ou qualquer órgão oficial da República Federativa do Brasil.</span></div></footer>
 </body></html>`;
 
-app.get("/", (c) => c.html(page));
+app.get("/", async c => {let html=page;try{const rows=await c.env.DB?.prepare("SELECT key,value FROM site_settings WHERE key IN (?,?)").bind("site_title","announcement").all<{key:string,value:string}>();const values=Object.fromEntries((rows?.results||[]).map(x=>[x.key,x.value]));const escape=(v:string)=>v.replace(/[&<>"\x27]/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","\x27":"&#39;"}[ch]||ch));if(values.site_title)html=html.replace("<title>STF · Supremo Tribunal Federal | Diplomacia</title>","<title>"+escape(values.site_title)+"</title>");if(values.announcement)html=html.replace("<body>","<body><aside style=\"padding:14px;text-align:center;background:#e9efff;color:#142b55\" role=\"status\">"+escape(values.announcement)+"</aside>")}catch{}return c.html(html)});
 app.get("/api/health", (c) => c.json({ ok: true, service: "STF Diplomacia" }));
 
 type PublicCase = { case_number: string; title: string; case_type: string; status: string; created_at: string };

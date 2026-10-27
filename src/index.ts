@@ -65,6 +65,28 @@ footer{background:#10231f;color:#c1cfc4;padding:42px 0}.footinner{display:flex;j
 @media(max-width:950px){nav{gap:14px}.idcopy strong{font-size:15px}.instgrid{gap:40px}.ribboninner{flex-wrap:wrap;padding-top:22px;padding-bottom:22px}.ribbon .sep{display:none}}
 @media(max-width:740px){.container{padding:0 22px}.topbar .container{gap:10px}.topbar span:last-child{display:none}.headinner{height:auto;padding-top:18px;padding-bottom:18px;align-items:flex-start;flex-direction:column}nav{width:100%;justify-content:space-between;gap:12px;flex-wrap:wrap}.navcta{padding:10px 12px}.hero,.hero .container{min-height:590px}.heroart{width:100%;opacity:.32}.herocopy{padding:78px 0 95px}h1{font-size:clamp(40px,10vw,60px)}.heroindex{right:22px}.ribboninner{gap:16px}.ribbon .value{font-size:12px}.section{padding:70px 0}.sectiontop{display:block}.sectionintro{margin-top:20px}.cards{grid-template-columns:1fr}.card{min-height:270px}.instgrid{grid-template-columns:1fr}.instart{min-height:290px}.institution{padding:65px 0}.noticeinner{align-items:flex-start}.footinner{flex-direction:column;align-items:flex-start}.footnote{text-align:left}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.card{transition:none}}
+
+/* Identidade visual 2026: grafite, azul elétrico e superfícies editoriais */
+:root{--ink:#101b30;--pine:#111827;--pine2:#090f1e;--gold:#536dfe;--paper:#f2f5fa;--muted:#637188;--line:#dce4ef}
+body{background:#f2f5fa;color:#152039;font-family:"DM Sans",Arial,sans-serif}
+.topbar{background:#080e1b;color:#9aaac8}.topbar b{color:#81b4ff}
+.sitehead{background:rgba(255,255,255,.97);border-bottom:1px solid #e3eaf5;box-shadow:0 4px 28px #13233b09}
+.crest{border-radius:15px;background:#101d37;color:#c5d8ff;border:0}.crest:after{border:1px solid #526c9d55;border-radius:11px}
+.idcopy strong{color:#101b32}.idcopy small{color:#6d7c93}
+nav{gap:17px;flex-wrap:wrap;justify-content:flex-end}nav a{color:#43526b}.loginlink{border:1px solid #d8e1ee;border-radius:10px;padding:11px 14px}.loginlink:hover{background:#f2f5ff}
+.navcta{background:#3e5cf4;color:white;border-radius:10px;box-shadow:0 8px 22px #3e5cf42e}.navcta:hover{background:#2949e2}
+.hero{background:#0a1224;min-height:680px}.hero:before{background:radial-gradient(ellipse at 77% 36%,#3c61c54d,transparent 47%),radial-gradient(ellipse at 95% 90%,#45c3db25,transparent 48%),linear-gradient(105deg,#080f20 4%,#0f1c35 57%,#172d50 100%)}
+.heroart{width:57%;opacity:.7;background:linear-gradient(90deg,transparent,#172c54aa),repeating-linear-gradient(0deg,transparent 0 48px,#a5c7ff0d 49px 50px);mask-image:linear-gradient(90deg,transparent,#000 40%)}
+.pediment{background:linear-gradient(135deg,#4d6fc9,#a4c9f8 48%,#28487c);opacity:.22}.beam{background:#a5bfe9;opacity:.18}.columns i{background:repeating-linear-gradient(90deg,#42618b 0 7px,#9bbbe2 9px 19px,#476895 22px 29px);opacity:.24}
+.hero .container{min-height:680px}.herocopy{padding:110px 0 120px}.hero .eyebrow{color:#9cc6ff}.hero .eyebrow:before{background:#77a7f7}
+h1{font-size:clamp(44px,5.5vw,78px);letter-spacing:-.055em}h1 em{color:#a6c6ff}.herocopy>p{color:#c3cfe3;font-size:16px}
+.primary{background:#5576ff;color:white;border-radius:10px;box-shadow:0 12px 28px #3554d533}.primary:hover{background:#7790ff}.ghost{border-color:#8fb2ff;color:#edf3ff}.heroindex{color:#abc6f6}.heroindex span{background:#779bdf}
+.ribbon{background:white;border-bottom:1px solid #e1e7f0}.ribbon .label{color:#71809a}.ribbon .value{color:#172c4a}.ribbon .sep{background:#dfe7f1}
+.section{padding:105px 0}.section .eyebrow,.instcopy .eyebrow{color:#4565d7}.section h2,.instcopy h2{color:#101c35}.sectionintro{color:#64728a}
+.cards{gap:20px}.card{border:1px solid #e1e7f2;border-radius:18px;box-shadow:0 12px 35px #1c35500a;padding:37px 33px;min-height:325px}.card:hover{border-color:#a3b6ff;box-shadow:0 22px 46px #264cb41c;transform:translateY(-6px)}.cardicon{background:#edf2ff;border:0;border-radius:13px;color:#4968e9}.card h3{color:#172744}.card p{color:#6b7890}.cardbottom{color:#3f5ddb;border-color:#e8edf6}
+.institution{background:#e8eef8}.instart{background:radial-gradient(circle at 50% 35%,#294d89,#101b35 70%);border-radius:22px;box-shadow:0 24px 50px #172c5330}.instart:before{border-color:#a5bff84a;border-radius:15px}.instart:after{border-color:#a5bff83d}.instseal{border-color:#9cbcff;color:#dce9ff}.instcopy p{color:#62738c}
+.notice{background:#fff;border-color:#e1e7f1}.noticemark{color:#5576ff}.notice p{color:#6a7a93}footer{background:#0b1426;color:#cbd6eb}.footbrand{color:#f4f7ff}.footnote{color:#9aa9c3}
+@media(max-width:740px){.hero,.hero .container{min-height:590px}.heroart{width:100%;opacity:.32}.herocopy{padding:78px 0 95px}nav{justify-content:flex-start}.loginlink{padding:10px 12px}}
 </style>
 </head>
 <body>
@@ -76,8 +98,8 @@ footer{background:#10231f;color:#c1cfc4;padding:42px 0}.footinner{display:flex;j
 <main>
 <section class="hero"><div class="heroart" aria-hidden="true"><div class="pediment"></div><div class="beam"></div><div class="columns"><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
 <div class="container"><div class="herocopy"><div class="eyebrow">Poder Judiciário · Diplomacia RP</div>
-<h1>A justiça como <em>fundamento</em> de uma nação.</h1>
-<p>Um novo espaço para a Justiça brasileira no universo Diplomacia. Transparência, independência institucional e respeito à Constituição de roleplay.</p>
+<h1>Justiça, confiança e <em>um novo futuro.</em></h1>
+<p>Uma nova experiência para a Justiça no universo Diplomacia. Protocole ações, acompanhe processos e consulte decisões em um portal moderno, transparente e independente.</p>
 <div class="heroactions"><a class="primary" href="/processos">Consultar processos <span aria-hidden="true">↗</span></a><a class="ghost" href="#institucional">Conheça a instituição</a></div></div></div>
 <div class="heroindex"><span></span> SUPREMO TRIBUNAL FEDERAL</div></section>
 <div class="ribbon"><div class="container ribboninner"><div><div class="label">Instituição</div><div class="value">Supremo Tribunal Federal</div></div><span class="sep"></span><div><div class="label">Jurisdição</div><div class="value">Brasil · Diplomacia RP</div></div><span class="sep"></span><div><div class="label">Portal</div><div class="value">Acesso público</div></div><span class="sep"></span><div><div class="label">Situação</div><div class="value">Implantação em andamento</div></div></div></div>
@@ -88,7 +110,7 @@ footer{background:#10231f;color:#c1cfc4;padding:42px 0}.footinner{display:flex;j
 <article class="card"><span class="cardicon"><svg viewBox="0 0 24 24"><path d="M12 6C9 4 6 4 3 5v15c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1Zm0 0v15"/></svg></span><h3>Biblioteca jurídica</h3><p>Normas, atos institucionais e Constituição de RP reunidos em um único lugar.</p><a class="cardbottom" href="/legislacao">Abrir biblioteca jurídica <span aria-hidden="true">↗</span></a></article>
 </div></div></section>
 <section class="institution" id="institucional"><div class="container instgrid"><div class="instart" aria-hidden="true"><div class="instseal"><b>STF</b><small>DIPLOMACIA</small></div></div><div class="instcopy"><div class="eyebrow">Nossa instituição</div><h2>Uma Justiça construída sobre princípios.</h2><p>O Supremo Tribunal Federal de roleplay integra a experiência institucional do Brasil no jogo Diplomacia. Este portal foi concebido para reunir informações, fortalecer a transparência e apoiar a organização dos procedimentos judiciais.</p><p>As atribuições judiciais e a administração técnica da plataforma serão mantidas separadas, respeitando as competências de cada função.</p></div></div></section>
-<section class="notice" id="transparencia"><div class="container noticeinner"><span class="noticemark" aria-hidden="true">✳</span><div><strong>Transparência desde o primeiro dia.</strong><p>O portal está em implantação. Cadastro e peticionamento ainda não foram ativados. As consultas públicas dependem da conexão do banco de dados. Nenhum dado processual fictício é apresentado como registro oficial.</p></div></div></section>
+<section class="notice" id="transparencia"><div class="container noticeinner"><span class="noticemark" aria-hidden="true">✳</span><div><strong>Transparência desde o primeiro dia.</strong><p>O portal está em desenvolvimento contínuo. O cadastro e o protocolo de processos já estão disponíveis; novos módulos judiciais serão liberados progressivamente.</p></div></div></section>
 </main><footer><div class="container footinner"><span class="footbrand">STF <span style="color:#c8a675">·</span> Diplomacia</span><span class="footnote">Projeto independente de roleplay do jogo Diplomacia. Sem vínculo com o Supremo Tribunal Federal ou qualquer órgão oficial da República Federativa do Brasil.</span></div></footer>
 </body></html>`;
 

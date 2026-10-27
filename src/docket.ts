@@ -111,3 +111,24 @@ docket.post("/julgar", async c => {
     return c.json({ error: "Julgamento indisponível." }, 503);
   }
 });
+
+docket.post("/movimentacoes", async c => {
+ c.header("Cache-Control","no-store");
+ if(!c.env.DB)return c.json({error:"Banco indisponível"},503);
+ const actor=await access(c);
+ if(!actor)return c.json({error:"Acesso restrito"},403);
+ const body=await c.req.json().catch(()=>null);
+ const number=typeof body?.case_number==="string"?body.case_number.trim():"";
+ const details=typeof body?.details==="string"?body.details.trim():"";
+ if(!/^STF-[0-9]{4}-[A-F0-9]{8}$/.test(number)||details.length<10||details.length>3000)return c.json({error:"Dados inválidos"},400);
+ const record=await c.env.DB.prepare("SELECT id,status,assigned_judge FROM cases WHERE case_number=?").bind(number).first<{id:string,status:string,assigned_judge:string|null}>();
+ if(!record)return c.json({error:"Processo inexistente"},404);
+ if(["closed","rejected","decided"].includes(record.status))return c.json({error:"Processo encerrado"},409);
+ if(!actor.roles.some(role=>["court_clerk","president"].includes(role))&&record.assigned_judge!==actor.user.id)return c.json({error:"Sem permissão para movimentar este processo"},403);
+ const id=crypto.randomUUID();
+ await c.env.DB.batch([
+ c.env.DB.prepare("INSERT INTO case_events(id,case_id,actor_id,event_type,details) VALUES(?,?,?,?,?)").bind(id,record.id,actor.user.id,"note",details),
+ c.env.DB.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),actor.user.id,"case.movement.create","case",record.id)
+ ]);
+ return c.json({ok:true,message:"Movimentação registrada"},201);
+});

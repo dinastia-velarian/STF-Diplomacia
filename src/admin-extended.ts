@@ -52,3 +52,10 @@ adminExtended.get("/magistrados",async c=>{
  const rows=await c.env.DB!.prepare("SELECT u.id,u.game_username,r.name AS role,ur.granted_at FROM user_roles ur JOIN users u ON u.id=ur.user_id JOIN roles r ON r.id=ur.role_id WHERE ur.revoked_at IS NULL AND r.name IN ('minister','president','court_clerk') ORDER BY r.name,u.game_username LIMIT 300").all();
  return c.json({magistrates:rows.results});
 });
+
+adminExtended.get("/processos/:id/movimentacoes",async c=>{
+ const target=await c.env.DB!.prepare("SELECT id,case_number,title,status FROM cases WHERE id=?").bind(c.req.param("id")).first();
+ if(!target)return c.json({error:"Processo inexistente"},404);
+ const rows=await c.env.DB!.prepare("SELECT e.event_type,e.details,e.created_at,u.game_username AS actor FROM case_events e JOIN users u ON u.id=e.actor_id WHERE e.case_id=? ORDER BY e.created_at DESC LIMIT 200").bind(c.req.param("id")).all();
+ return c.json({case:target,events:rows.results});
+});

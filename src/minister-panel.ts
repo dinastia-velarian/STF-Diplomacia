@@ -63,6 +63,7 @@ async function decide(action){const status=document.querySelector("#admission-st
 document.querySelector("#admit").addEventListener("click",()=>decide("admit"));
 document.querySelector("#reject").addEventListener("click",()=>decide("reject"));
 document.querySelector("#publish").addEventListener("click",async()=>{const status=document.querySelector("#judgment-status");const content=document.querySelector("#judgment").value.trim();const constitutional_basis=document.querySelector("#basis").value.trim();if(!selectedCase||content.length<80){status.textContent="Selecione o processo e escreva pelo menos 80 caracteres.";return}if(!confirm("Publicar decisão definitiva? Esta ação não poderá ser desfeita."))return;try{const response=await fetch("/api/court/julgar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case_number:selectedCase,content,constitutional_basis})});const data=await response.json();status.textContent=data.message||data.error||"Operação indisponível.";if(response.ok)load()}catch{status.textContent="Falha na publicação."}});
+document.querySelector("#recordMovement").onclick=submitMovement;
 document.querySelector("#refresh").addEventListener("click", load);
 loadJudges();
 load();

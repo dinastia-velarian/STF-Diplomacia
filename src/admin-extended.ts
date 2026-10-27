@@ -59,3 +59,11 @@ adminExtended.get("/processos/:id/movimentacoes",async c=>{
  const rows=await c.env.DB!.prepare("SELECT e.event_type,e.details,e.created_at,u.game_username AS actor FROM case_events e JOIN users u ON u.id=e.actor_id WHERE e.case_id=? ORDER BY e.created_at DESC LIMIT 200").bind(c.req.param("id")).all();
  return c.json({case:target,events:rows.results});
 });
+
+adminExtended.get("/backup",async c=>{
+ const tables=["users","roles","user_roles","cases","case_parties","case_events","decisions","votes","legal_norms","constitutional_reviews","consultations","audit_logs","site_settings"];
+ const data:Record<string,unknown>={};
+ for(const table of tables){const result=await c.env.DB!.prepare("SELECT * FROM "+table+" LIMIT 5000").all();data[table]=result.results}
+ c.header("Content-Disposition",'attachment; filename="stf-diplomacia-backup.json"');
+ return c.json({exported_at:new Date().toISOString(),data});
+});

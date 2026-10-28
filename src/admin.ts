@@ -1,13 +1,17 @@
 import { Hono } from "hono";
 import { currentUser } from "./auth";
 
+export async function administrativeAccess(c: Parameters<typeof currentUser>[0], userId:string){
+  const archiveAction=c.req.method==="POST"&&/^\/api\/admin\/processos\/[^/]+\/(arquivar|restaurar)$/.test(c.req.path);
+  return c.env.DB!.prepare("SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=? AND ur.revoked_at IS NULL AND (r.name='technical_admin' OR (?=1 AND r.name='president')) LIMIT 1").bind(userId,archiveAction?1:0).first();
+}
 export const admin = new Hono<{ Bindings: { DB?: D1Database } }>();
 admin.use("*", async (c, next) => {
   c.header("Cache-Control", "no-store");
   if (!c.env.DB) return c.json({ error: "Banco não configurado." }, 503);
   const user = await currentUser(c).catch(() => null);
   if (!user) return c.json({ error: "Autenticação necessária." }, 401);
-  const authorized = await c.env.DB.prepare("SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=? AND ur.revoked_at IS NULL AND r.name='technical_admin' LIMIT 1").bind(user.id).first().catch(() => null);
+  const authorized = await administrativeAccess(c,user.id).catch(() => null);
   if (!authorized) return c.json({ error: "Acesso exclusivo do superadministrador." }, 403);
   c.set("actorId" as never, user.id as never);
   await next();

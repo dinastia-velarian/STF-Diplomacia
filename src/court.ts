@@ -11,7 +11,9 @@ court.get("/fila", async (c) => {
   try {
     const permitted = await c.env.DB.prepare("SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ? AND ur.revoked_at IS NULL AND r.name IN ('minister', 'president', 'court_clerk') LIMIT 1").bind(user.id).first();
     if (!permitted) return c.json({ error: "Acesso restrito." }, 403);
-    const result = await c.env.DB.prepare("SELECT id, case_number, title, case_type, status, created_at FROM cases WHERE visibility = 'public' AND (status IN ('submitted','triage','instruction') OR id IN (SELECT case_id FROM case_archives)) ORDER BY created_at LIMIT 50").all();
+    const archiveAvailable=await c.env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='case_archives'").first();
+    const query=archiveAvailable?"SELECT id, case_number, title, case_type, status, created_at FROM cases WHERE visibility = 'public' AND (status IN ('submitted','triage','instruction') OR id IN (SELECT case_id FROM case_archives)) ORDER BY created_at LIMIT 50":"SELECT id,case_number,title,case_type,status,created_at FROM cases WHERE visibility='public' AND status IN ('submitted','triage','instruction') ORDER BY created_at LIMIT 50";
+    const result = await c.env.DB.prepare(query).all();
     return c.json({ cases: result.results ?? [] });
   } catch {
     return c.json({ error: "Fila indisponível." }, 503);

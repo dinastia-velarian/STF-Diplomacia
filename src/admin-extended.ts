@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { currentUser } from "./auth";
+import { administrativeAccess } from "./admin";
 export const adminExtended = new Hono<{Bindings:{DB?:D1Database}}>();
 adminExtended.use("*",async(c,next)=>{
  if(!c.env.DB)return c.json({error:"Banco indisponível"},503);
@@ -13,9 +14,18 @@ adminExtended.use("*",async(c,next)=>{
  if(!isAdmin && !(isPresident && isArchiveRoute))return c.json({error:"Acesso restrito"},403);
  c.header("Cache-Control","no-store");await next();
 });
+async function archiveAvailable(db:D1Database){
+ return !!await db.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='case_archives'").first();
+}
+adminExtended.use("/processos/:id/*",async(c,next)=>{
+ if(c.req.method==="POST"&&!await archiveAvailable(c.env.DB!))return c.json({error:"Gerenciamento de arquivamento temporariamente indisponível."},503);
+ await next();
+});
 adminExtended.get("/processos",async c=>{
- const rows=await c.env.DB!.prepare("SELECT c.id,c.case_number,c.title,c.status,c.visibility,c.assigned_judge,c.created_at, a.archived_at FROM cases c LEFT JOIN case_archives a ON a.case_id=c.id ORDER BY c.created_at DESC LIMIT 200").all();
- return c.json({cases:rows.results});
+ const archive_available=await archiveAvailable(c.env.DB!);
+ const query=archive_available?"SELECT c.id,c.case_number,c.title,c.status,c.visibility,c.assigned_judge,c.created_at, a.archived_at FROM cases c LEFT JOIN case_archives a ON a.case_id=c.id ORDER BY c.created_at DESC LIMIT 200":"SELECT id,case_number,title,status,visibility,assigned_judge,created_at,NULL AS archived_at FROM cases ORDER BY created_at DESC LIMIT 200";
+ const rows=await c.env.DB!.prepare(query).all();
+ return c.json({cases:rows.results,archive_available});
 });
 
 adminExtended.post("/processos/:id/arquivar",async c=>{

@@ -126,10 +126,12 @@ test('arquivamento preserva histórico, restauração e exclusão protegida',asy
  const number=await file();const row=await db.prepare('SELECT id FROM cases WHERE case_number=?').bind(number).first();
  const path='/api/admin/processos/'+row.id;
  await json(path+'/arquivar',users.citizen.cookie,{reason:'Teste de arquivamento'},403);
- await json(path+'/arquivar',admin,{reason:'Teste de arquivamento'});
+ await json(path+'/arquivar',minister,{reason:'Teste de arquivamento'},403);
+ await json('/api/admin/resumo',president,undefined,403);
+ await json(path+'/arquivar',president,{reason:'Teste de arquivamento'});
  assert.ok((await json('/api/admin/processos',admin)).cases.find(x=>x.id===row.id).archived_at);
  assert.equal((await json(path+'/movimentacoes',admin)).events.length,1);
- await json(path+'/restaurar',admin,{});
+ await json(path+'/restaurar',president,{});
  assert.equal((await json('/api/admin/processos',admin)).cases.find(x=>x.id===row.id).archived_at,null);
  await json(path+'/excluir',admin,{confirmation:'INVALIDO'},400);
  // Only this newly created synthetic local case is deleted.
@@ -139,4 +141,13 @@ test('arquivamento preserva histórico, restauração e exclusão protegida',asy
  await json('/api/admin/processos/'+published.id+'/excluir',admin,{confirmation:published.case_number},409);
  const backup=await json('/api/admin/backup',admin);
  assert.ok(backup.data.users.every(u=>!('password_hash' in u)));
+});
+test('painel continua operante com migração de arquivamento pendente',async()=>{
+ await db.prepare('DROP TABLE case_archives').run();
+ const data=await json('/api/admin/processos',admin);assert.equal(data.archive_available,false);assert.ok(data.cases.length);
+ await json('/api/court/fila',president);
+ const id=data.cases[0].id;
+ for(const action of ['arquivar','restaurar','excluir'])await json('/api/admin/processos/'+id+'/'+action,admin,{reason:'Teste fictício',confirmation:data.cases[0].case_number},503);
+ assert.ok(await db.prepare('SELECT id FROM cases WHERE id=?').bind(id).first());
+ await json('/api/admin/legislacao',admin);await json('/api/admin/decisoes',admin);await json('/api/admin/configuracoes',admin);
 });

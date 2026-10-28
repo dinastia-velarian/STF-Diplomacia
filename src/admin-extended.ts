@@ -5,8 +5,12 @@ adminExtended.use("*",async(c,next)=>{
  if(!c.env.DB)return c.json({error:"Banco indisponível"},503);
  const user=await currentUser(c).catch(()=>null);
  if(!user)return c.json({error:"Login necessário"},401);
- const allowed=await c.env.DB.prepare("SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=? AND ur.revoked_at IS NULL AND r.name='technical_admin'").bind(user.id).first();
- if(!allowed)return c.json({error:"Acesso restrito"},403);
+ const allowed=await c.env.DB.prepare("SELECT r.name FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=? AND ur.revoked_at IS NULL AND r.name IN ('technical_admin','president')").bind(user.id).all<{name:string}>();
+ const names=(allowed.results||[]).map(x=>x.name);
+ const isAdmin=names.includes("technical_admin");
+ const isPresident=names.includes("president");
+ const isArchiveRoute=c.req.method==="POST" && c.req.path.startsWith("/api/admin/processos/") && (c.req.path.endsWith("/arquivar") || c.req.path.endsWith("/restaurar"));
+ if(!isAdmin && !(isPresident && isArchiveRoute))return c.json({error:"Acesso restrito"},403);
  c.header("Cache-Control","no-store");await next();
 });
 adminExtended.get("/processos",async c=>{

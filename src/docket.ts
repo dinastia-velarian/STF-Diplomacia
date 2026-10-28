@@ -69,6 +69,7 @@ docket.post("/admissibilidade", async c => {
     if (!/^STF-[0-9]{4}-[A-F0-9]{8}$/.test(number) || !["admit", "reject"].includes(action) || reason.length < 30 || reason.length > 5000) return c.json({ error: "Informe processo, decisão e fundamentação de 30 a 5000 caracteres." }, 400);
     const record = await c.env.DB.prepare("SELECT id FROM cases WHERE case_number=? AND assigned_judge=? AND status IN ('submitted','triage')").bind(number, actor.user.id).first<{id:string}>();
     if (!record) return c.json({ error: "Processo não encontrado na relatoria ou já analisado." }, 409);
+    if(await isArchived(c.env.DB,record.id))return c.json({error:"Processo arquivado; restaure antes de continuar."},409);
     const status = action === "admit" ? "instruction" : "rejected";
     const event = action === "admit" ? "admitted" : "rejected";
     const eventId = crypto.randomUUID();

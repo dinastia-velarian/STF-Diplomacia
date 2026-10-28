@@ -10,9 +10,52 @@ adminExtended.use("*",async(c,next)=>{
  c.header("Cache-Control","no-store");await next();
 });
 adminExtended.get("/processos",async c=>{
- const rows=await c.env.DB!.prepare("SELECT id,case_number,title,status,visibility,assigned_judge,created_at FROM cases ORDER BY created_at DESC LIMIT 200").all();
+ const rows=await c.env.DB!.prepare("SELECT c.id,c.case_number,c.title,c.status,c.visibility,c.assigned_judge,c.created_at, a.archived_at FROM cases c LEFT JOIN case_archives a ON a.case_id=c.id ORDER BY c.created_at DESC LIMIT 200").all();
  return c.json({cases:rows.results});
 });
+
+adminExtended.post("/processos/:id/arquivar",async c=>{
+ const actor=await currentUser(c);const id=c.req.param("id");
+ const b=await c.req.json().catch(()=>null);const reason=typeof b?.reason==="string"?b.reason.trim():"";
+ if(reason.length<10||reason.length>500)return c.json({error:"Informe motivo de 10 a 500 caracteres."},400);
+ const db=c.env.DB!;const item=await db.prepare("SELECT id,case_number,status FROM cases WHERE id=?").bind(id).first<{id:string,case_number:string,status:string}>();
+ if(!item)return c.json({error:"Processo não encontrado."},404);
+ if(await db.prepare("SELECT 1 FROM case_archives WHERE case_id=?").bind(id).first())return c.json({error:"Processo já arquivado."},409);
+ await db.batch([
+ db.prepare("INSERT INTO case_archives(case_id,archived_by,previous_status,reason) VALUES(?,?,?,?)").bind(id,actor!.id,item.status,reason),
+ db.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,metadata) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.case.archive","case",id,JSON.stringify({number:item.case_number,reason}))
+ ]);
+ return c.json({ok:true,message:"Processo arquivado. Histórico preservado."});
+});
+adminExtended.post("/processos/:id/restaurar",async c=>{
+ const actor=await currentUser(c);const id=c.req.param("id"),db=c.env.DB!;
+ const archive=await db.prepare("SELECT case_id FROM case_archives WHERE case_id=?").bind(id).first();
+ if(!archive)return c.json({error:"Processo não está arquivado."},404);
+ await db.batch([
+ db.prepare("DELETE FROM case_archives WHERE case_id=?").bind(id),
+ db.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.case.restore","case",id)
+ ]);
+ return c.json({ok:true,message:"Processo restaurado."});
+});
+adminExtended.post("/processos/:id/excluir",async c=>{
+ const actor=await currentUser(c);const id=c.req.param("id"),db=c.env.DB!;
+ const b=await c.req.json().catch(()=>null);
+ const item=await db.prepare("SELECT id,case_number,title,status FROM cases WHERE id=?").bind(id).first<{id:string,case_number:string,title:string,status:string}>();
+ if(!item)return c.json({error:"Processo inexistente."},404);
+ if(b?.confirmation!==item.case_number)return c.json({error:"Digite o número completo do processo para confirmar."},400);
+ const protectedRows=await db.prepare("SELECT (SELECT COUNT(*) FROM decisions WHERE case_id=?) AS decisions,(SELECT COUNT(*) FROM votes WHERE case_id=?) AS votes,(SELECT COUNT(*) FROM case_documents WHERE case_id=?) AS documents").bind(id,id,id).first<{decisions:number,votes:number,documents:number}>();
+ if((protectedRows?.decisions||0)>0||(protectedRows?.votes||0)>0||(protectedRows?.documents||0)>0)return c.json({error:"Exclusão bloqueada: processo possui decisões, votos ou documentos. Utilize Arquivar."},409);
+ await db.batch([
+ db.prepare("DELETE FROM case_archives WHERE case_id=?").bind(id),
+ db.prepare("DELETE FROM constitutional_reviews WHERE case_id=?").bind(id),
+ db.prepare("DELETE FROM case_parties WHERE case_id=?").bind(id),
+ db.prepare("DELETE FROM case_events WHERE case_id=?").bind(id),
+ db.prepare("DELETE FROM cases WHERE id=?").bind(id),
+ db.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,metadata) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.case.delete","case",id,JSON.stringify({number:item.case_number,title:item.title}))
+ ]);
+ return c.json({ok:true,message:"Processo excluído permanentemente."});
+});
+
 adminExtended.get("/legislacao",async c=>{
  const rows=await c.env.DB!.prepare("SELECT id,norm_type,title,content,effective_from,effective_until FROM legal_norms ORDER BY created_at DESC LIMIT 200").all();
  return c.json({norms:rows.results});

@@ -12,7 +12,7 @@ court.get("/fila", async (c) => {
     const permitted = await c.env.DB.prepare("SELECT 1 FROM user_roles ur JOIN roles r ON r.id = ur.role_id WHERE ur.user_id = ? AND ur.revoked_at IS NULL AND r.name IN ('minister', 'president', 'court_clerk') LIMIT 1").bind(user.id).first();
     if (!permitted) return c.json({ error: "Acesso restrito." }, 403);
     const archiveAvailable=await c.env.DB.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='case_archives'").first();
-    const query=archiveAvailable?"SELECT id, case_number, title, case_type, status, created_at FROM cases WHERE visibility = 'public' AND (status IN ('submitted','triage','instruction') OR id IN (SELECT case_id FROM case_archives)) ORDER BY created_at LIMIT 50":"SELECT id,case_number,title,case_type,status,created_at FROM cases WHERE visibility='public' AND status IN ('submitted','triage','instruction') ORDER BY created_at LIMIT 50";
+    const query=archiveAvailable?"SELECT c.id,c.case_number,c.title,c.case_type,c.status,c.created_at,a.archived_at FROM cases c LEFT JOIN case_archives a ON a.case_id=c.id WHERE c.visibility='public' AND (c.status IN ('submitted','triage','instruction') OR a.case_id IS NOT NULL) ORDER BY c.created_at LIMIT 50":"SELECT id,case_number,title,case_type,status,created_at FROM cases WHERE visibility='public' AND status IN ('submitted','triage','instruction') ORDER BY created_at LIMIT 50";
     const result = await c.env.DB.prepare(query).all();
     return c.json({ cases: result.results ?? [] });
   } catch {

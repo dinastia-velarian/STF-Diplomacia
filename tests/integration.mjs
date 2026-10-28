@@ -151,6 +151,20 @@ test('arquivamento impede novas movimentações e distribuição',async()=>{
  await json('/api/admin/processos/'+record.id+'/restaurar',president,{});
  await json('/api/court/distribuir',clerk,{case_number:number,judge_id:users.minister.id});
 });
+test('catálogo de sanções é editável somente pelo administrador',async()=>{
+ const route='/api/admin/sancoes/configuracao';
+ await json(route,users.citizen.cookie,undefined,403);
+ await json(route,president,undefined,403);
+ const original=await json(route,admin);
+ assert.ok(original.sanctions.some(x=>x.code==='warning'));
+ await json(route,president,{sanctions:original.sanctions},403);
+ const edited=original.sanctions.map(x=>({...x}));
+ edited[0].description='Advertência de teste, sem aplicação real.';
+ await json(route,admin,{sanctions:edited});
+ const updated=await json(route,admin);
+ assert.equal(updated.sanctions[0].description,edited[0].description);
+ await json(route,admin,{sanctions:[{code:'invalid'}]},400);
+});
 test('painel continua operante com migração de arquivamento pendente',async()=>{
  await db.prepare('DROP TABLE case_archives').run();
  const data=await json('/api/admin/processos',admin);assert.equal(data.archive_available,false);assert.ok(data.cases.length);

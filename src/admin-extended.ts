@@ -124,3 +124,30 @@ adminExtended.get("/backup",async c=>{
  c.header("Content-Disposition",'attachment; filename="stf-diplomacia-backup.json"');
  return c.json({exported_at:new Date().toISOString(),data});
 });
+
+const defaultSanctions=[
+ {code:"warning",name:"Advertência",enabled:true,execution:"rp",description:"Registro formal de advertência."},
+ {code:"fine",name:"Multa",enabled:true,execution:"voluntary",description:"Pagamento voluntário no jogo, mediante comprovação."},
+ {code:"political_suspension",name:"Suspensão política",enabled:false,execution:"rp",description:"Restrição temporária de participação política no RP."},
+ {code:"ineligibility",name:"Inelegibilidade",enabled:false,execution:"rp",description:"Restrição temporária de candidatura no RP."},
+ {code:"office_suspension",name:"Afastamento de cargo",enabled:false,execution:"voluntary",description:"Afastamento voluntário de função no jogo."},
+ {code:"disqualification",name:"Inabilitação",enabled:false,execution:"rp",description:"Restrição temporária de exercício de cargos no RP."},
+ {code:"restitution",name:"Reparação",enabled:false,execution:"voluntary",description:"Restituição voluntária mediante comprovação."}
+];
+adminExtended.get("/sancoes/configuracao",async c=>{
+ const row=await c.env.DB!.prepare("SELECT value FROM site_settings WHERE key='sanctions_catalog'").first<{value:string}>();
+ return c.json({sanctions:row?JSON.parse(row.value):defaultSanctions});
+});
+adminExtended.post("/sancoes/configuracao",async c=>{
+ const body=await c.req.json().catch(()=>null);
+ const sanctions=body?.sanctions;
+ if(!Array.isArray(sanctions)||sanctions.length!==defaultSanctions.length)return c.json({error:"Catálogo inválido."},400);
+ const codes=defaultSanctions.map(x=>x.code);
+ if(sanctions.some((x:any,i:number)=>!x||x.code!==codes[i]||typeof x.name!=="string"||x.name.trim().length<3||x.name.length>80||typeof x.description!=="string"||x.description.length>500||typeof x.enabled!=="boolean"||!["rp","voluntary"].includes(x.execution)))return c.json({error:"Dados inválidos."},400);
+ const actor=await currentUser(c);
+ await c.env.DB!.batch([
+ c.env.DB!.prepare("INSERT INTO site_settings(key,value) VALUES('sanctions_catalog',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=CURRENT_TIMESTAMP").bind(JSON.stringify(sanctions)),
+ c.env.DB!.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id) VALUES(?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.sanctions.catalog.update","setting","sanctions_catalog")
+ ]);
+ return c.json({ok:true,message:"Catálogo de sanções atualizado."});
+});

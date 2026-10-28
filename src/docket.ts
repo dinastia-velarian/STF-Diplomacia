@@ -15,9 +15,10 @@ docket.get("/relatores", async c => {
   c.header("Cache-Control", "no-store");
   if (!c.env.DB) return c.json({ error: "Banco indisponível." }, 503);
   try {
-    if (!await access(c)) return c.json({ error: "Acesso restrito ao Tribunal." }, 403);
+    const actor=await access(c);
+    if (!actor) return c.json({ error: "Acesso restrito ao Tribunal." }, 403);
     const result = await c.env.DB.prepare("SELECT DISTINCT u.id,u.game_username FROM users u JOIN user_roles ur ON ur.user_id=u.id JOIN roles r ON r.id=ur.role_id WHERE ur.revoked_at IS NULL AND u.status='active' AND r.name IN ('minister','president') ORDER BY u.game_username").all();
-    return c.json({ judges: result.results ?? [] });
+    return c.json({ judges: result.results ?? [], is_president: actor.roles.includes("president") });
   } catch {
     return c.json({ error: "Consulta indisponível." }, 503);
   }

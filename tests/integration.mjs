@@ -142,6 +142,15 @@ test('arquivamento preserva histórico, restauração e exclusão protegida',asy
  const backup=await json('/api/admin/backup',admin);
  assert.ok(backup.data.users.every(u=>!('password_hash' in u)));
 });
+test('arquivamento impede novas movimentações e distribuição',async()=>{
+ const number=await file();
+ const record=await db.prepare('SELECT id FROM cases WHERE case_number=?').bind(number).first();
+ await json('/api/admin/processos/'+record.id+'/arquivar',president,{reason:'Teste de processo arquivado.'});
+ await json('/api/court/distribuir',clerk,{case_number:number,judge_id:users.minister.id},409);
+ await json('/api/court/movimentacoes',president,{case_number:number,details:'Tentativa de movimentação em arquivo.'},409);
+ await json('/api/admin/processos/'+record.id+'/restaurar',president,{});
+ await json('/api/court/distribuir',clerk,{case_number:number,judge_id:users.minister.id});
+});
 test('painel continua operante com migração de arquivamento pendente',async()=>{
  await db.prepare('DROP TABLE case_archives').run();
  const data=await json('/api/admin/processos',admin);assert.equal(data.archive_available,false);assert.ok(data.cases.length);

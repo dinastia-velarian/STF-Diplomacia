@@ -182,6 +182,8 @@ test('catálogo de sanções é editável somente pelo administrador',async()=>{
  await json(route,admin,{sanctions:edited});
  const updated=await json(route,admin);
  assert.equal(updated.sanctions[0].description,edited[0].description);
+ const audit=await db.prepare("SELECT COUNT(*) AS total FROM audit_logs WHERE action='admin.sanctions.catalog.update'").first();
+ assert.ok(audit.total>=1);
  await json(route,admin,{sanctions:[{code:'invalid'}]},400);
 });
 test('painel continua operante com migração de arquivamento pendente',async()=>{

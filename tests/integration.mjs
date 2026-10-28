@@ -153,6 +153,8 @@ test('arquivamento impede novas movimentações e distribuição',async()=>{
  const number=await file();
  const record=await db.prepare('SELECT id FROM cases WHERE case_number=?').bind(number).first();
  await json('/api/admin/processos/'+record.id+'/arquivar',president,{reason:'Teste de processo arquivado.'});
+ const queue=await json('/api/court/fila',president);
+ assert.ok(queue.cases.some(x=>x.case_number===number&&x.archived_at));
  await json('/api/court/distribuir',clerk,{case_number:number,judge_id:users.minister.id},409);
  await json('/api/court/movimentacoes',president,{case_number:number,details:'Tentativa de movimentação em arquivo.'},409);
  await json('/api/admin/processos/'+record.id+'/restaurar',president,{});

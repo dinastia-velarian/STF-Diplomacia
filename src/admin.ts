@@ -56,20 +56,23 @@ admin.post("/usuarios/cargo", async c => {
     if (typeof body?.user_id !== "string" || !["citizen","lawyer","minister","president","court_clerk"].includes(body?.role) || !["grant","revoke"].includes(body?.action)) return c.json({ error:"Dados inválidos." },400);
     const actor = await currentUser(c);
     const role = await c.env.DB!.prepare("SELECT id FROM roles WHERE name=?").bind(body.role).first<{id:string}>();
-    const user = await c.env.DB!.prepare("SELECT id FROM users WHERE id=?").bind(body.user_id).first();
+    const user = await c.env.DB!.prepare("SELECT id,status FROM users WHERE id=?").bind(body.user_id).first<{id:string;status:string}>();
     if (!role || !user) return c.json({ error:"Usuário ou cargo inexistente." },404);
     if (body.action === "grant") {
+      if (user.status !== "active") return c.json({ error:"Não é permitido nomear usuário suspenso." },409);
       const existing = await c.env.DB!.prepare("SELECT 1 FROM user_roles WHERE user_id=? AND role_id=? AND revoked_at IS NULL").bind(body.user_id,role.id).first();
       if (existing) return c.json({ error:"Cargo já atribuído." },409);
-      await c.env.DB!.batch([
-        c.env.DB!.prepare("INSERT INTO user_roles(user_id,role_id,granted_by) VALUES(?,?,?)").bind(body.user_id,role.id,actor!.id),
-        c.env.DB!.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,metadata) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.role.grant","user",body.user_id,JSON.stringify({role:body.role}))
+      const result = await c.env.DB!.batch([
+        c.env.DB!.prepare("INSERT INTO user_roles(user_id,role_id,granted_by,granted_at) SELECT ?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM user_roles WHERE user_id=? AND role_id=? AND revoked_at IS NULL)").bind(body.user_id,role.id,actor!.id,new Date().toISOString(),body.user_id,role.id),
+        c.env.DB!.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,metadata) SELECT ?,?,?,?,?,? WHERE changes()>0").bind(crypto.randomUUID(),actor!.id,"admin.role.grant","user",body.user_id,JSON.stringify({role:body.role}))
       ]);
+      if (!result[0].meta.changes) return c.json({error:"Cargo já atribuído."},409);
     } else {
-      await c.env.DB!.batch([
+      const result = await c.env.DB!.batch([
         c.env.DB!.prepare("UPDATE user_roles SET revoked_at=CURRENT_TIMESTAMP WHERE user_id=? AND role_id=? AND revoked_at IS NULL").bind(body.user_id,role.id),
-        c.env.DB!.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,metadata) VALUES(?,?,?,?,?,?)").bind(crypto.randomUUID(),actor!.id,"admin.role.revoke","user",body.user_id,JSON.stringify({role:body.role}))
+        c.env.DB!.prepare("INSERT INTO audit_logs(id,actor_id,action,resource_type,resource_id,metadata) SELECT ?,?,?,?,?,? WHERE changes()>0").bind(crypto.randomUUID(),actor!.id,"admin.role.revoke","user",body.user_id,JSON.stringify({role:body.role}))
       ]);
+      if (!result[0].meta.changes) return c.json({error:"Cargo não está ativo."},409);
     }
     return c.json({ok:true});
   } catch {return c.json({error:"Operação indisponível."},503);}

@@ -1,9 +1,9 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { currentUser } from "./auth";
 
 export const docket = new Hono<{ Bindings: { DB?: D1Database } }>();
 const courtRoles = ["minister", "president", "court_clerk"];
-async function access(c: any) {
+async function access(c: Context<{ Bindings: { DB?: D1Database } }>) {
   if (!c.env.DB) return null;
   const user = await currentUser(c).catch(() => null);
   if (!user) return null;

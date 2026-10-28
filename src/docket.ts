@@ -2,6 +2,7 @@ import { Hono, type Context } from "hono";
 import { currentUser } from "./auth";
 
 export const docket = new Hono<{ Bindings: { DB?: D1Database } }>();
+async function isArchived(db:D1Database,id:string){const exists=await db.prepare("SELECT 1 FROM sqlite_master WHERE name=? AND type=?").bind("case_archives","table").first();return Boolean(exists&&await db.prepare("SELECT 1 FROM case_archives WHERE case_id=?").bind(id).first());}
 const courtRoles = ["minister", "president", "court_clerk"];
 async function access(c: Context<{ Bindings: { DB?: D1Database } }>) {
   if (!c.env.DB) return null;
@@ -39,6 +40,7 @@ docket.post("/distribuir", async c => {
     if (!valid) return c.json({ error: "Relator não autorizado." }, 400);
     const record = await c.env.DB.prepare("SELECT id FROM cases WHERE case_number=? AND status IN ('submitted','triage','instruction') AND assigned_judge IS NULL").bind(number).first<{id:string}>();
     if (!record) return c.json({ error: "Processo indisponível para distribuição." }, 409);
+    if(await isArchived(c.env.DB,record.id))return c.json({error:"Processo arquivado; restaure antes de continuar."},409);
     const eventId = crypto.randomUUID();
     const operations = await c.env.DB.batch([
       c.env.DB.prepare("UPDATE cases SET assigned_judge=? WHERE id=? AND assigned_judge IS NULL AND status IN ('submitted','triage','instruction')").bind(judge, record.id),
@@ -97,6 +99,7 @@ docket.post("/julgar", async c => {
     if (!/^STF-[0-9]{4}-[A-F0-9]{8}$/.test(number) || content.length < 80 || content.length > 20000 || basis.length > 5000) return c.json({ error: "Informe processo e decisão fundamentada de 80 a 20000 caracteres." }, 400);
     const record = await c.env.DB.prepare("SELECT id FROM cases WHERE case_number=? AND assigned_judge=? AND status IN ('instruction','hearing')").bind(number, actor.user.id).first<{id:string}>();
     if (!record) return c.json({ error: "Processo não disponível para julgamento por este relator." }, 409);
+    if(await isArchived(c.env.DB,record.id))return c.json({error:"Processo arquivado; restaure antes de continuar."},409);
     const decisionId = crypto.randomUUID();
     const eventId = crypto.randomUUID();
     const now = new Date().toISOString();
@@ -126,6 +129,7 @@ docket.post("/movimentacoes", async c => {
  if(!record)return c.json({error:"Processo inexistente"},404);
  if(["closed","rejected","decided"].includes(record.status))return c.json({error:"Processo encerrado"},409);
  if(!actor.roles.some(role=>["court_clerk","president"].includes(role))&&record.assigned_judge!==actor.user.id)return c.json({error:"Sem permissão para movimentar este processo"},403);
+ if(await isArchived(c.env.DB,record.id))return c.json({error:"Processo arquivado; restaure antes de continuar."},409);
  const id=crypto.randomUUID();
  await c.env.DB.batch([
  c.env.DB.prepare("INSERT INTO case_events(id,case_id,actor_id,event_type,details) VALUES(?,?,?,?,?)").bind(id,record.id,actor.user.id,"note",details),

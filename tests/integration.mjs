@@ -120,6 +120,13 @@ test('painel executa JavaScript e atualiza normas e composição após ações',
  const row=[...d.querySelectorAll('#users tr')].find(x=>x.textContent.includes('TEST_citizen'));
  row.querySelector('select').value='minister';row.querySelectorAll('button')[1].click();
  await until(()=>d.querySelector('#magistrates').textContent.includes('TEST_citizen'));
+ await until(()=>d.querySelectorAll('#sanctionSettings input[type="checkbox"]').length===7);
+ const first=d.querySelector('#sanctionSettings textarea');
+ first.value='Advertência alterada durante teste local.';
+ first.dispatchEvent(new w.Event('input',{bubbles:true}));
+ d.querySelector('#saveSanctions').click();
+ await until(()=>d.querySelector('#sanctionStatus').textContent.includes('atualizado'));
+ assert.equal((await json('/api/admin/sancoes/configuracao',admin)).sanctions[0].description,first.value);
  assert.deepEqual(failures,[]);dom.window.close();
 });
 test('arquivamento preserva histórico, restauração e exclusão protegida',async()=>{

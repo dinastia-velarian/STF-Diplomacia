@@ -51,11 +51,11 @@ async function load() {
    const article = document.createElement("article");
    article.className = "item";
    const title = document.createElement("strong");
-   title.textContent = item.case_number + " · " + item.title;
-   const select = document.createElement("button"); select.type = "button"; select.textContent = "Selecionar para distribuição"; select.addEventListener("click", () => { selectedCase = item.case_number; selectedCaseId=item.id; document.querySelector("#assignment-status").textContent = "Selecionado: " + selectedCase; });
+   title.textContent = item.case_number + " · " + item.title + (item.archived_at ? " · ARQUIVADO" : "");
+   const select = document.createElement("button"); select.type = "button"; select.textContent = item.archived_at ? "Selecionar para restauração" : "Selecionar processo"; select.addEventListener("click", () => { selectedCase = item.case_number; selectedCaseId=item.id; document.querySelector("#assignment-status").textContent = "Selecionado: " + selectedCase; });
    const details = document.createElement("p");
    details.className = "muted";
-   details.textContent = item.case_type + " · " + item.status + " · " + item.created_at;
+   details.textContent = item.case_type + " · " + (item.archived_at ? "Arquivado em " + item.archived_at : item.status) + " · " + item.created_at;
    article.append(title, details, select);
    target.append(article);
   }

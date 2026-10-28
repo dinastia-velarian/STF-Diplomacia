@@ -151,6 +151,18 @@ test('arquivamento impede novas movimentações e distribuição',async()=>{
  await json('/api/admin/processos/'+record.id+'/restaurar',president,{});
  await json('/api/court/distribuir',clerk,{case_number:number,judge_id:users.minister.id});
 });
+test('arquivamento impede admissibilidade e julgamento',async()=>{
+ const number=await file();
+ const record=await db.prepare('SELECT id FROM cases WHERE case_number=?').bind(number).first();
+ const route='/api/admin/processos/'+record.id;
+ await json('/api/court/distribuir',clerk,{case_number:number,judge_id:users.minister.id});
+ await json(route+'/arquivar',president,{reason:'Teste de suspensão da tramitação.'});
+ await json('/api/court/admissibilidade',minister,{case_number:number,action:'admit',reason:'Fundamentação de teste suficientemente detalhada.'},409);
+ await json(route+'/restaurar',president,{});
+ await json('/api/court/admissibilidade',minister,{case_number:number,action:'admit',reason:'Fundamentação de teste suficientemente detalhada.'});
+ await json(route+'/arquivar',president,{reason:'Teste de bloqueio de julgamento.'});
+ await json('/api/court/julgar',minister,{case_number:number,content:'Decisão fundamentada exclusivamente para teste. '.repeat(4)},409);
+});
 test('catálogo de sanções é editável somente pelo administrador',async()=>{
  const route='/api/admin/sancoes/configuracao';
  await json(route,users.citizen.cookie,undefined,403);

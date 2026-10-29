@@ -36,6 +36,10 @@ button{background:#17382f;color:#fff;border:0;padding:13px 20px;cursor:pointer;f
 <script>
 let selectedCase = "";
 let selectedCaseId = "";
+const judicialStatusLabels={filed:"Protocolado",triage:"Em triagem",distributed:"Distribuído",admissibility:"Em admissibilidade",instruction:"Em instrução",rejected:"Não admitido",judgment:"Em julgamento",decided:"Julgado",published:"Publicado",closed:"Encerrado",archived:"Arquivado"};
+const judicialTypeLabels={constitutional_review:"Controle de constitucionalidade",constitutional_complaint:"Reclamação constitucional",consultation:"Consulta constitucional",complaint:"Denúncia",direct_action:"Ação direta",appeal:"Recurso"};
+function readableStatus(code){return judicialStatusLabels[code]||String(code||"").replaceAll("_"," ")}
+function readableCaseType(code){return judicialTypeLabels[code]||String(code||"").replaceAll("_"," ")}
 async function submitMovement(){const status=document.querySelector("#movementStatus");const details=document.querySelector("#movementDetails").value.trim();if(!selectedCase||details.length<10){status.textContent="Selecione um processo e descreva a movimentação.";return}try{const r=await fetch("/api/court/movimentacoes",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case_number:selectedCase,details})});const data=await r.json();status.textContent=data.message||data.error||"Falha";if(r.ok)document.querySelector("#movementDetails").value=""}catch{status.textContent="Falha de conexão."}}
 
 async function load() {
@@ -55,7 +59,7 @@ async function load() {
    const select = document.createElement("button"); select.type = "button"; select.textContent = item.archived_at ? "Selecionar para restauração" : "Selecionar processo"; select.addEventListener("click", () => { selectedCase = item.case_number; selectedCaseId=item.id; document.querySelector("#assignment-status").textContent = "Selecionado: " + selectedCase; });
    const details = document.createElement("p");
    details.className = "muted";
-   details.textContent = item.case_type + " · " + (item.archived_at ? "Arquivado em " + item.archived_at : item.status) + " · " + item.created_at;
+   details.textContent = readableCaseType(item.case_type) + " · " + (item.archived_at ? "Arquivado em " + item.archived_at : readableStatus(item.status)) + " · " + item.created_at;
    article.append(title, details, select);
    target.append(article);
   }

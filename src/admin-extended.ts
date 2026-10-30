@@ -96,7 +96,7 @@ adminExtended.get("/configuracoes",async c=>{
 });
 adminExtended.post("/configuracoes",async c=>{
  const b=await c.req.json().catch(()=>null);
- if(!["site_title","announcement","maintenance_notice","contact_telegram","maintenance_mode","registration_enabled","filing_enabled","public_search_enabled"].includes(b?.key)||typeof b?.value!=="string"||b.value.length>2000|| (b.key==="site_title"&&b.value.trim().length<3))return c.json({error:"Dados inválidos"},400);
+ if(!["site_title","announcement","maintenance_notice","contact_telegram","maintenance_mode","registration_enabled","filing_enabled","public_search_enabled","home_eyebrow","home_heading","home_description"].includes(b?.key)||typeof b?.value!=="string"||b.value.length>2000|| (["site_title","home_heading"].includes(b.key)&&b.value.trim().length<3))return c.json({error:"Dados inválidos"},400);
  if(["maintenance_mode","registration_enabled","filing_enabled","public_search_enabled"].includes(b.key)&&!["true","false"].includes(b.value))return c.json({error:"Use true ou false"},400);
  const actor=await currentUser(c);
  await c.env.DB!.batch([

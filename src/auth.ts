@@ -77,7 +77,7 @@ auth.get("/me", async c => {
   c.header("Cache-Control", "no-store");
   const user = await currentUser(c).catch(() => null);
   if (!user) return c.json({ authenticated: false }, 401);
-  return c.json({ authenticated: true, username: user.game_username });
+  const roles=await c.env.DB!.prepare("SELECT r.name FROM user_roles ur JOIN roles r ON r.id=ur.role_id WHERE ur.user_id=? AND ur.revoked_at IS NULL").bind(user.id).all<{name:string}>();return c.json({ authenticated: true, username: user.game_username, roles: [...new Set(["citizen",...(roles.results||[]).map(r=>r.name)])] });
 });
 auth.post("/logout", async c => {
   c.header("Cache-Control", "no-store");

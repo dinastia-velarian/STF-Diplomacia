@@ -172,6 +172,21 @@ test('arquivamento impede admissibilidade e julgamento',async()=>{
  await json(route+'/arquivar',president,{reason:'Teste de bloqueio de julgamento.'});
  await json('/api/court/julgar',minister,{case_number:number,content:'Decisão fundamentada exclusivamente para teste. '.repeat(4)},409);
 });
+test('superadministrador edita capa com proteção contra HTML e trilha de auditoria',async()=>{
+ const route='/api/admin/configuracoes';
+ await json(route,users.citizen.cookie,{key:'home_heading',value:'Alteração não autorizada'},403);
+ const title='STF Diplomacia <script>alert(1)</script>';
+ await json(route,admin,{key:'home_heading',value:title});
+ await json(route,admin,{key:'home_eyebrow',value:'Justiça e transparência'});
+ await json(route,admin,{key:'home_description',value:'Portal de testes do Supremo Tribunal Federal'});
+ const page=await (await request('/')).text();
+ assert.ok(page.includes('STF Diplomacia &lt;script&gt;alert(1)&lt;/script&gt;'));
+ assert.ok(!page.includes('<h1>STF Diplomacia <script>'));
+ assert.ok(page.includes('Justiça e transparência'));
+ assert.ok(page.includes('Portal de testes do Supremo Tribunal Federal'));
+ const log=await db.prepare("SELECT COUNT(*) AS n FROM audit_logs WHERE action='admin.setting.update' AND resource_id='home_heading'").first();
+ assert.ok(log.n>=1);
+});
 test('catálogo de sanções é editável somente pelo administrador',async()=>{
  const route='/api/admin/sancoes/configuracao';
  await json(route,users.citizen.cookie,undefined,403);
